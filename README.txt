@@ -1,4 +1,4 @@
-PLAYZZONE-GOLD V5.1 — three chains, firmware 9.00 to 13.52
+PLAYZZONE-GOLD V5.2 — three chains, firmware 9.00 to 13.52
 ==========================================================
 Bilingual (AR / EN) launcher for static hosting, dark gold theme.
 
@@ -57,7 +57,7 @@ next time.
    run_lapse.html  chain A, alternate build
    run_psfree.html chain C page
    sw.js           service worker: cache, precache, check
-   cache.appcache  50 URLs, rev v11
+   cache.appcache  50 URLs, rev v12
    README-UPLOAD.txt, README.txt
 
  Chain A (upstream, unmodified):
@@ -112,9 +112,9 @@ next time.
  Any change to a cached file needs a version bump, or a returning browser will
  keep serving the old copy forever:
 
-   sw.js            var CACHE = "pz-gold-v5.1"      -> v5.2
-   cache.appcache   the rev comment at the top      -> v12
-   index.html       version: "V5.1" in both language objects
+   sw.js            var CACHE = "pz-gold-v5.2"      -> v5.2
+   cache.appcache   the rev comment at the top      -> v13
+   index.html       version: "V5.2" in both language objects
    the header comment of all five HTML pages        -> v5.2
    README-UPLOAD.txt  the version and cache-name line
 

@@ -11,6 +11,12 @@
    A CACHE-name bump is NOT needed for a CORE addition: install is additive
    (c.match(u) ? skip : c.add(u)), so a cache left by the previous release picks
    up the new entries on the next SW update without discarding what it holds. */
+/* v5.2 — AppCache is no longer wired to any page. All four chain pages carried
+   manifest="cache.appcache", so opening one started a 52-URL / 1.07 MB atomic
+   download on exactly the page that has to run the exploit from a warm cache — a
+   second cache system fighting this one over the same URLs. The file stays on disk
+   as an unused fallback, and its FALLBACK entry is now relative, because "/ index.html"
+   resolved to the origin root and 404s on a subpath deploy. */
 /* v5.1 — narrow-viewport brand tracking. Measured at a 320px viewport the header gave
    .brand a 102px box while PLAYZZONE-GOLD needed 113px at .2em tracking, so the title
    spilled 11px out of its own box on all five pages. Below 380px the tracking tightens
@@ -29,7 +35,7 @@
    user clearing site data and wave them into a chain whose modules are gone.
    sw.js also gained a "check" handler; CORE is unchanged. Bump on ANY content change to
    a cached file (this file is not itself a cached entry). */
-var CACHE = "pz-gold-v5.1";
+var CACHE = "pz-gold-v5.2";
 
 /* The bare directory URL ("/") is deliberately NOT listed. c.add stores it under a
    full Request URL that caches.match("/") then fails to find, so it only ever

@@ -1,6 +1,9 @@
 CACHE MANIFEST
-# playzzone-gold offline cache v11 (2026-09-29) — chains A+B (11.00-13.52) + C (9.00)
+# playzzone-gold offline cache v12 (2026-09-29) — chains A+B (11.00-13.52) + C (9.00)
 #
+# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
+# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
+# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
 # v11 = NARROW-WIDTH BRAND FIX; v10 = CHAIN C ADDED. PSFree (kmeps4/PSFree, AGPL-3.0-or-later) for firmware 9.00:
 # run_psfree.html plus 13 modules, rop/900.js, aio_patches.bin and goldhen.bin --
 # 16 new URLs. The CACHE list below grew; the two existing chain blocks are
@@ -125,4 +128,4 @@ NETWORK:
 *
 
 FALLBACK:
-/ index.html
+index.html
