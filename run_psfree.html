@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" manifest="cache.appcache">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PLAYZZONE-GOLD — تفعيل PS4</title>
+<style>
+/* ============ PLAYZZONE GOLD v5.1 — run page (9.00), bilingual ==================
+   CHAIN C — PSFree (kmeps4/PSFree, AGPL-3.0-or-later).
+
+   This page differs from run_poops.html / run_lapse.html in exactly two places,
+   and both are forced by PSFree's own code, which is shipped unmodified:
+
+     1. The log element is id="console", not id="out".
+        module/utils.js does `const console = document.getElementById('console')`
+        at module-evaluation time and log() appends to it. Renaming the id would
+        mean editing their file; naming the element "console" means editing nothing.
+
+     2. The terminal state is read from the log text, not from #state.
+        PSFree never writes #state. The other two chains set its className to
+        {"", "ok", "bad", "warn"} and this page mirrors that onto the headline.
+        Here the verdict comes from two things instead: the success line PSFree
+        prints after it has handed GoldHEN to the kernel (lapse.js, the last two
+        log() calls in kexploit().then()), and an unhandledrejection trap, because
+        their failure path is die() -> DieError -> a rejected promise that nothing
+        in the chain catches.
+
+   #state and #console are deliberately NOT translated: they are the chain's own
+   technical output, and inventing an Arabic rendering of a kernel log would be a
+   false claim about what ran on the console. */
+:root{
+  --bg:#0e0e11; --surface:#17171c; --sunken:#0a0a0d; --gold-tint:#252322;
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.16);
+  --ink:#e9e9ec; --ink-2:#ababb4; --muted:#8e8e99;
+  --gold:#c9a961; --gold-ink:#e3c48a; --gold-line:#8a7440;
+  --ok:#62d194; --bad:#f5917d; --warn:#e0b95f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px}
+
+.wrap{width:min(420px,100%);margin:0 auto}
+.head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.head .sp{flex:1 1 0;min-width:0}
+.brand{flex:1 1 0;min-width:0;margin:0;text-align:center;font-size:14px;font-weight:700;
+       color:var(--gold-ink);letter-spacing:.2em;direction:ltr}
+
+.lang{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.lb{padding:5px 9px;border:0;background:transparent;color:var(--muted);cursor:pointer;
+    font:600 12px/1.3 inherit;letter-spacing:.02em}
+.lb[aria-pressed="true"]{background:var(--gold-tint);color:var(--gold-ink)}
+.lb:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+
+main{padding:26px 22px;text-align:center;
+     background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.sub{margin:0 0 4px;font-size:12.5px;color:var(--muted);direction:ltr;font-variant-numeric:tabular-nums}
+
+#act{margin:18px 0 0;font-size:26px;font-weight:700;line-height:1.25;color:var(--gold-ink);
+     min-height:34px;unicode-bidi:plaintext}
+#act.ok{color:var(--ok)}
+#act.bad{color:var(--bad)}
+#act.warn{color:var(--warn)}
+
+/* Indeterminate by nature: the chain reports no fraction, only stages. */
+.bar{margin:16px auto 0;width:100%;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+#fill{height:100%;width:100%;background:var(--gold);border-radius:2px;transition:background-color .2s ease}
+#fill.busy{animation:breathe 1.5s ease-in-out infinite}
+#fill.bad{background:var(--bad)}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
+
+#state{margin:14px 0 0;font-size:13.5px;color:var(--muted);line-height:1.55;unicode-bidi:plaintext}
+#state.ok{color:var(--ok)} #state.bad{color:var(--bad)} #state.warn{color:var(--warn)}
+/* PSFree's own log element. Hidden because #logbox below is what you read; the
+   chain still fills it, the panel just mirrors it. Same reason the other two run
+   pages hide #out. */
+#console{display:none}
+
+#fw{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+#fw b{color:var(--ink-2);font-weight:600}
+#social{margin:5px 0 0;color:var(--muted);font-size:12.5px}
+#social b{color:var(--gold-ink);font-weight:600;letter-spacing:.04em;unicode-bidi:isolate;direction:ltr}
+
+/* ---- the small log window ------------------------------------------------
+   Identical to the other two run pages, except it observes #console instead of
+   #out. Same rule: the panel never reads the chain, it mirrors it. */
+#logbox{margin:13px auto 0;width:100%;
+    background:var(--surface);border:1px solid var(--line-2);border-radius:12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);overflow:hidden}
+#logbox[hidden]{display:none}
+.lb-h{display:flex;align-items:center;gap:8px;padding:7px 8px 7px 11px;
+      background:var(--sunken);border-bottom:1px solid var(--line)}
+.lb-t{flex:none;font-size:12.5px;font-weight:700;color:var(--gold-ink);white-space:nowrap}
+.lb-t.ok{color:var(--ok)} .lb-t.bad{color:var(--bad)} .lb-t.warn{color:var(--warn)}
+.lb-s{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      text-align:start;direction:ltr;unicode-bidi:isolate;
+      font:11px/1.4 ui-monospace,Consolas,monospace;color:var(--muted)}
+.lb-x{flex:none;width:26px;height:26px;padding:0;border:1px solid var(--line);
+      border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;
+      font:600 13px/1 inherit}
+.lb-x:hover{color:var(--gold-ink);border-color:var(--line-2)}
+.lb-x:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.lb-b{margin:0;padding:9px 12px;max-height:36vh;overflow-y:auto;
+      white-space:pre-wrap;direction:ltr;text-align:left;unicode-bidi:isolate;
+      font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--ink-2)}
+.lb-b .ok{color:var(--ok)} .lb-b .bad{color:var(--bad)} .lb-b .warn{color:var(--gold-ink)}
+#logbox.big{position:fixed;z-index:40;inset:20px;width:auto;margin:0}
+#logbox.big .lb-b{max-height:min(72vh,620px);font-size:12.5px}
+
+ /* At 320px the header hands .brand a 102px box, and the word needs 113px at
+    .2em tracking, so the title spills out of its own box. Two fixes, narrow
+    screens only: tighten the tracking, and stop the flex spacer from claiming
+    half the header. Same word, same colour, same order -- 414px and up are
+    untouched. */
+ @media (max-width:380px){.brand{font-size:13px;letter-spacing:.1em}.head .sp{flex:0 0 0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <span class="sp" aria-hidden="true"></span>
+    <h1 class="brand" dir="ltr">PLAYZZONE-GOLD</h1>
+    <div class="lang" role="group" data-i18n-aria="langGroup">
+      <button class="lb" type="button" data-set-lang="ar" aria-pressed="true">ع</button>
+      <button class="lb" type="button" data-set-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="sub" dir="ltr">9.00</p>
+
+    <p id="act" role="status" aria-live="polite"></p>
+    <div class="bar" role="progressbar" data-i18n-aria="barLabel"><div id="fill" class="busy"></div></div>
+    <p id="state"></p>
+    <pre id="console"></pre>
+
+    <p id="fw"><span data-i18n="fwPrefix"></span> <b id="fwv" dir="ltr">—</b></p>
+    <p id="social"><span data-i18n="social"></span> <b>play_zzone</b></p>
+
+    <aside id="logbox" hidden data-i18n-aria="logTitle">
+      <div class="lb-h">
+        <span class="lb-t" id="lbtitle"></span>
+        <span class="lb-s" id="lbstep" dir="ltr"></span>
+        <button class="lb-x" type="button" id="lbtoggle" data-i18n-aria="logExpand"
+                aria-pressed="false" title=""><span aria-hidden="true">⤢</span></button>
+      </div>
+      <pre class="lb-b" id="logbody" role="log"></pre>
+    </aside>
+  </main>
+</div>
+
+<script>
+/* ---------- bilingual ----------
+   Same dictionary keys and the same localStorage key as the launcher and the other
+   run pages, and all pages share one origin, so the language chosen on the launcher
+   is still in effect after the redirect. Only the interface is translated; the
+   chain's own output in #console is left exactly as the module wrote it. */
+(function(){
+  try{
+    var DICT = {
+      ar: { title:"PLAYZZONE-GOLD — تفعيل PS4", langGroup:"اللغة", fwPrefix:"إصدار الجهاز",
+            social:"لمتابعة كل جديد:", barLabel:"جارٍ التفعيل",
+            actRunning:"جارٍ التفعيل…", actOk:"تم التفعيل", actBad:"تعذّر التفعيل",
+            actWarn:"تم جزء من التفعيل — أعد تشغيل الجهاز",
+             logTitle:"سجل التفعيل", logExpand:"عرض السجل كاملاً", logShrink:"تصغير السجل",
+             actOnly:"هذا الإصدار مدعوم — التفعيل متاح" },
+      en: { title:"PLAYZZONE-GOLD — PS4 Activation", langGroup:"Language", fwPrefix:"Firmware",
+            social:"Follow for updates:", barLabel:"Activating",
+            actRunning:"Activating…", actOk:"Activated", actBad:"Activation failed",
+            actWarn:"Partially activated — restart your console",
+             logTitle:"Activation log", logExpand:"Show full log", logShrink:"Shrink log",
+             actOnly:"This firmware is supported — activation available" }
+    };
+    var KEY = "pz_lang";
+    function read(){ try{ return localStorage.getItem(KEY) === "en" ? "en" : "ar"; } catch(e){ return "ar"; } }
+    var lang = read();
+    function T(k){ return DICT[lang][k]; }
+    var hooks = [];
+    window.__pz = { T: T, onChange: function (fn) { hooks.push(fn); fn(); } };
+    function render(){
+      var n = document.querySelectorAll("[data-i18n]"), i;
+      for (i = 0; i < n.length; i++) n[i].textContent = T(n[i].getAttribute("data-i18n"));
+      var a = document.querySelectorAll("[data-i18n-aria]");
+      for (i = 0; i < a.length; i++) a[i].setAttribute("aria-label", T(a[i].getAttribute("data-i18n-aria")));
+      var s = document.querySelectorAll("[data-set-lang]");
+      for (i = 0; i < s.length; i++) s[i].setAttribute("aria-pressed", String(s[i].getAttribute("data-set-lang") === lang));
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      document.title = T("title");
+      for (i = 0; i < hooks.length; i++) hooks[i]();
+    }
+    function setLang(next){
+      if (next !== "ar" && next !== "en") return;
+      lang = next;
+      try { localStorage.setItem(KEY, next); } catch(e){}
+      render();
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-set-lang]"), function(b){
+      b.addEventListener("click", function(){ setLang(b.getAttribute("data-set-lang")); }, false);
+    });
+    render();
+  }catch(e){}
+})();
+</script>
+<script>
+/* Device firmware, same hex-minor scale the launcher uses. Written before the chain
+   starts so the number is on screen while the exploit runs. */
+(function(){try{
+  var m=/PlayStation\s+4[\/ ](\d+)\.([0-9a-f]{1,2})/i.exec(navigator.userAgent);
+  if(!m)return;
+  var s=parseInt(m[2],16).toString(16).toUpperCase();
+  if(s.length<2)s="0"+s;
+  document.getElementById("fwv").textContent=m[1]+"."+s;
+}catch(e){}})();
+</script>
+<script>
+/* ---------- the verdict, derived from the chain's own output ----------
+   The other two run pages read #state.className, which their chains maintain.
+   PSFree maintains nothing: its whole interface is log() into #console. So this
+   page derives the verdict from the log text instead, and owns #state itself.
+
+   Success is not guessed. lapse.js ends kexploit() with exactly these two lines
+   after handing both payloads to the kernel:
+       log("AIO Fixes Applied.!")
+       log("GoldHEN Loaded.!")
+   The second one only runs on the setTimeout after the first, so its presence is
+   the chain's own statement that it finished.
+
+   Failure is their die(): it throws DieError, nothing catches it, and it reaches
+   window as an unhandledrejection. Upstream ships alert.js, which pops an alert()
+   box for exactly this; a blocking modal is the wrong thing on a page with a log
+   panel already showing the reason, so the same trap writes to #state instead and
+   alert.js is not shipped. */
+(function(){try{
+  var con=document.getElementById("console"), st=document.getElementById("state"), OK="GoldHEN Loaded.!";
+  if(!con||!st) return;
+  var done=false;
+  function set(cls,text){ if(done) return; if(cls==="ok") done=true; st.className=cls; if(text) st.textContent=text; }
+  /* Only ever marks a failure. A success is declared by the log, never by silence:
+     if PSFree throws, the rejection arrives; if it stops without throwing, the
+     page keeps saying "running", which is the honest answer. */
+  function trap(e){
+    var r=e&&(e.reason!==undefined?e.reason:e);
+    var m=(r&&(r.message||r))?String(r.message||r).replace(/\s+/g," "):"";
+    set("bad", m||"unhandled rejection");
+  }
+  addEventListener("unhandledrejection", trap, false);
+  addEventListener("error", function(ev){ trap(ev); return true; }, false);
+  /* Success arrives as a text node appended to #console, so watch for it there
+     rather than re-reading the whole log on every mutation. */
+  new MutationObserver(function(){
+    if(done) return;
+    if(con.textContent.indexOf(OK)>=0) set("ok","");
+  }).observe(con,{childList:true,subtree:true,characterData:true});
+}catch(e){}})();
+</script>
+<script>
+/* Status mirror: projects #state onto the headline and the bar, so the two can
+   never disagree. On a terminal state #state is hidden -- it holds the same short
+   verdict and leaving it visible would print it twice. */
+(function(){try{
+  var st=document.getElementById("state"),act=document.getElementById("act"),fill=document.getElementById("fill");
+  function render(){
+    var T=window.__pz.T, c=st.className||"",t=st.textContent||"";
+    if(c.indexOf("bad")>=0){act.textContent=T("actBad");act.className="bad";fill.className="bad";st.style.display="none";}
+    else if(c.indexOf("ok")>=0){act.textContent=T("actOk");act.className="ok";fill.className="";st.style.display="none";}
+    else if(/reboot/i.test(t)){act.textContent=T("actWarn");act.className="warn";fill.className="";st.style.display="block";}
+    else{act.textContent=T("actRunning");act.className="";fill.className="busy";st.style.display="block";}
+  }
+  new MutationObserver(render).observe(st,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:["class"]});
+  window.__pz.onChange(render);
+}catch(e){}})();
+</script>
+<script>
+/* ---------- the small log window ----------
+   Observes #console and mirrors it into the panel. Identical to the other two run
+   pages except for the source element. Nothing here is translated: the log is the
+   chain's own bytes, and the header verdict is read off #state.className and shown
+   in the page's own language. Toggle is a class only -- no navigation, so nothing
+   to re-cache and no second copy of the chain in flight. */
+(function(){try{
+  var box=document.getElementById("logbox"), body=document.getElementById("logbody"),
+      title=document.getElementById("lbtitle"), step=document.getElementById("lbstep"),
+      tog=document.getElementById("lbtoggle"), src=document.getElementById("console"),
+      st=document.getElementById("state");
+  if(!box||!body||!src) return;
+
+  function pull(){
+    if(src.innerHTML===body.innerHTML) return;
+    body.innerHTML=src.innerHTML;
+    if(box.hidden && body.textContent) box.hidden=false;
+    body.scrollTop=body.scrollHeight;
+  }
+  function head(){
+    var T=window.__pz.T, c=(st&&st.className)||"";
+    title.className=c;
+    title.textContent=T(c.indexOf("ok")>=0?"actOk":c.indexOf("bad")>=0?"actBad":
+                        c.indexOf("warn")>=0?"actWarn":"actRunning");
+    if(st) step.textContent=st.textContent||"";
+  }
+  function syncTog(){
+    var big=box.classList.contains("big"), T=window.__pz.T;
+    tog.setAttribute("aria-pressed",String(big));
+    tog.setAttribute("aria-label",T(big?"logShrink":"logExpand"));
+    tog.title=T(big?"logShrink":"logExpand");
+    tog.firstChild.textContent=big?"⤡":"⤢";
+  }
+  new MutationObserver(pull).observe(src,{childList:true,subtree:true,characterData:true});
+  new MutationObserver(head).observe(st,{childList:true,characterData:true,subtree:true,
+                                         attributes:true,attributeFilter:["class"]});
+  tog.addEventListener("click",function(){
+    box.classList.toggle("big");
+    syncTog();
+    body.scrollTop=body.scrollHeight;
+  },false);
+  window.__pz.onChange(function(){ head(); syncTog(); });
+  head(); syncTog(); pull();
+}catch(e){}})();
+</script>
+<!-- PSFree's own entry. Loaded through a static import so a parse error on 9.00's
+     WebKit lands in window.onerror (caught above) instead of a blank page. -->
+<script type="module">
+  import "./psfree.js";
+</script>
+</body>
+</html>

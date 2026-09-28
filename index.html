@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PLAYZZONE-GOLD — تفعيل PS4</title>
+<meta name="description" content="تفعيل PlayStation 4 تلقائياً حسب إصدار نظامك من 11.00 حتى 13.52.">
+<meta name="theme-color" content="#0e0e11">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230e0e11'/><text x='16' y='22' font-size='17' font-family='system-ui,sans-serif' font-weight='700' fill='%23e3c48a' text-anchor='middle'>P</text></svg>">
+<style>
+/* ============ PLAYZZONE GOLD v5.1 — bilingual (ع / EN) ============ */
+:root{
+  --bg:#0e0e11; --surface:#17171c; --sunken:#0a0a0d; --hover:#1e1e25;
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.16);
+  --ink:#e9e9ec; --ink-2:#ababb4; --muted:#8e8e99;
+  --gold:#c9a961; --gold-ink:#e3c48a; --gold-tint:#252322; --gold-line:#8a7440;
+  --ok:#62d194; --warn:#e0b95f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px}
+
+/* Latin/number runs get reordered by the bidi algorithm. direction:ltr fixes the
+   visual order; unicode-bidi:plaintext re-resolves from the first strong character,
+   so mixed strings still land correctly in either language. */
+.brand,.r,#fwchip{unicode-bidi:plaintext}
+
+.wrap{width:min(440px,100%);margin:0 auto}
+
+/* Two equal flex items around the brand keep it optically centred while the
+   language switch sits on one side — works in both rtl and ltr without a hack. */
+.head{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.head .sp{flex:1 1 0;min-width:0}
+.brand{flex:1 1 0;min-width:0;margin:0;text-align:center;font-size:14px;font-weight:700;
+       color:var(--gold-ink);letter-spacing:.2em;direction:ltr}
+
+/* ---- language switch: a segmented control, so both languages exist without
+       printing every line twice. One label per line, not a duplicated sentence. */
+.lang{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.lb{padding:5px 9px;border:0;background:transparent;color:var(--muted);cursor:pointer;
+    font:600 12px/1.3 inherit;letter-spacing:.02em}
+.lb[aria-pressed="true"]{background:var(--gold-tint);color:var(--gold-ink)}
+.lb:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+
+/* ---- the one card: detection on top, the action underneath ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.frow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:16px 18px}
+.flabel{font-size:13.5px;color:var(--muted)}
+#fwchip{font-size:19px;font-weight:650;color:var(--ink);direction:ltr;font-variant-numeric:tabular-nums}
+#pills{display:inline-flex;margin-inline-start:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);unicode-bidi:plaintext}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--line-2);flex:none}
+.pill.ok{color:var(--ok)} .pill.ok::before{background:var(--ok)}
+.pill.warn{color:var(--warn)} .pill.warn::before{background:var(--warn)}
+
+/* ---- the action. aria-disabled, NOT disabled: it stays focusable so the reason
+       is still announced instead of the control silently vanishing from the tab order ---- */
+.go{display:block;width:100%;padding:18px;border:0;border-top:1px solid var(--line);
+    background:var(--gold-tint);color:var(--ink);text-align:start;cursor:pointer;font:inherit;
+    transition:background-color .14s ease}
+.go:hover{background:#2b2825}
+.go:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.go .r{display:block;font-size:21px;font-weight:650;letter-spacing:-.01em;color:var(--ink);direction:ltr;font-variant-numeric:tabular-nums}
+.go .a{display:block;margin-top:7px;font-size:14px;font-weight:600;color:var(--gold-ink)}
+.go[aria-disabled="true"]{background:var(--sunken);cursor:not-allowed}
+.go[aria-disabled="true"]:hover{background:var(--sunken)}
+.go[aria-disabled="true"] .a{color:var(--muted)}
+
+/* ---- the exact supported set, as a quiet footnote under the button ----
+   Quiet on purpose: the user needs to be able to check their own version, but the
+   button is still the thing to press. --font-size keeps it on one line at the
+   402px card width; the versions are digits so 12px is still comfortably legible. */
+#fwlist{margin:11px 2px 0;font-size:12px;line-height:1.75;color:var(--muted)}
+#fwlistl{display:block}
+#fwlista{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;word-spacing:.1em}
+
+/* ---- manual fallback: collapsed; auto-opened only when the firmware is unread,
+       which is the one case where neither chain can be chosen for you ---- */
+details{margin-top:12px}
+summary{padding:9px 2px;font-size:12.5px;color:var(--muted);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:" ▾";font-size:10px}
+details[open] summary::after{content:" ▴"}
+summary:hover{color:var(--ink-2)}
+#opts{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.opt{display:block;width:100%;padding:12px 15px;border-radius:10px;border:1px solid var(--line);
+     background:var(--surface);color:var(--ink);text-align:start;cursor:pointer;font:inherit;
+     transition:border-color .14s ease,background-color .14s ease}
+.opt:hover{border-color:var(--line-2);background:var(--hover)}
+.opt:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.opt .r{display:block;font-size:16px;font-weight:650;color:var(--ink);direction:ltr;font-variant-numeric:tabular-nums}
+.opt .tag{display:block;margin-top:5px;font-size:12px;font-weight:600;color:var(--gold-ink);unicode-bidi:plaintext}
+.opt .tag:empty{display:none}
+.opt.hot{border-color:var(--gold-line);background:var(--gold-tint)}
+
+/* ---- boot area: SAME slot as the button, inside the card ----
+   It used to be a separate box below the card, so clicking made a new panel pop in
+   underneath while the original stayed put. It now replaces the button in place:
+   one card, one region, no pop-in and no second box. */
+#bootbox{display:none;padding:18px;border-top:1px solid var(--line);background:var(--sunken);outline:0}
+.bar{width:100%;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+#fill{height:100%;width:0;background:var(--gold);border-radius:2px;transition:width .2s ease}
+#fill.busy{width:100%;animation:breathe 1.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* percentage and status label are SIBLINGS — never nest the label inside the counter,
+   or writing the counter detaches the label and every later status update is lost.
+   One line, centred: <big>42%</big> · جارٍ تحميل الملفات… 3 من 8 */
+#pct{margin:14px 0 0;display:flex;align-items:baseline;justify-content:center;gap:9px;font-size:14px;color:var(--muted)}
+#num{font-size:19px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+#sub{unicode-bidi:plaintext}
+#state{margin:8px 0 0;font-size:14px;color:var(--ink-2);text-align:center}
+#state.warn{color:var(--warn)} #state.ok{color:var(--ok)} #state.bad{color:#f5917d}
+
+/* ---- the cold-start notice ----
+   Shown INSTEAD of launching once the cache is full. Filling the cache and
+   running the exploit are two separate visits on purpose: the chain does its
+   heap work with nothing else touching the network, and a console that has just
+   pulled half a megabyte over wifi is a worse place to start than one sitting
+   on a warm, quiet cache. So the button never fires the exploit on the same
+   visit that downloaded it. */
+#cold{display:none;margin:16px 0 0;padding:15px 16px;text-align:start;
+      border:1px solid var(--line-2);border-radius:11px;background:var(--sunken)}
+#cold.on{display:block}
+#cold h2{margin:0 0 9px;font-size:15px;font-weight:650;color:var(--gold-ink)}
+#cold ol{margin:0 0 10px;padding-inline-start:21px;font-size:13.5px;line-height:1.75;color:var(--ink-2)}
+#cold li{margin:0}
+#cold li b{color:var(--ink);font-weight:600}
+#cold p{margin:0;font-size:12.5px;line-height:1.6;color:var(--muted)}
+#cold p + p{margin-top:7px}
+#cold .warn{color:var(--warn)}
+
+footer{padding:6px 0 0;font-size:12.5px;color:var(--muted);text-align:center;letter-spacing:.02em}
+footer b{color:var(--ink-2);font-weight:600}
+ /* At 320px the header hands .brand a 102px box, and the word needs 113px at
+    .2em tracking, so the title spills out of its own box. Two fixes, narrow
+    screens only: tighten the tracking, and stop the flex spacer from claiming
+    half the header. Same word, same colour, same order -- 414px and up are
+    untouched. */
+ @media (max-width:380px){.brand{font-size:13px;letter-spacing:.1em}.head .sp{flex:0 0 0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <span class="sp" aria-hidden="true"></span>
+    <h1 class="brand" dir="ltr">PLAYZZONE-GOLD</h1>
+    <div class="lang" role="group" data-i18n-aria="langGroup">
+      <button class="lb" type="button" data-set-lang="ar" aria-pressed="true">ع</button>
+      <button class="lb" type="button" data-set-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="frow">
+      <span class="flabel" data-i18n="fwLabel"></span>
+      <span id="fwchip" dir="ltr">—</span>
+      <span id="pills"></span>
+    </div>
+    <button class="go" id="go" type="button" aria-disabled="true">
+      <span class="r" dir="ltr">—</span>
+      <span class="a"></span>
+    </button>
+
+    <!-- The exact supported set, printed. The launcher used to advertise two
+         continuous ranges, which read as "everything in between works"; it does
+         not, and a user on 11.52 had no way to find that out before activating. -->
+    <p id="fwlist"><span id="fwlistl" data-i18n="fwList"></span><span id="fwlista" dir="ltr"></span></p>
+
+    <!-- indeterminate while spinning, determinate (aria-valuenow) during precache -->
+    <div id="bootbox" tabindex="-1">
+      <div class="bar" id="bar" role="progressbar" data-i18n-aria="barLabel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="fill"></div></div>
+      <p id="pct"><span id="num"></span><span id="sub"></span></p>
+      <p id="state" role="status" aria-live="polite"></p>
+
+      <!-- replaces the old "precache then launch immediately" step.
+           Named by aria-labelledby, not aria-label: the heading below already
+           carries the translated title, so a second copy of the same string in an
+           attribute would only be able to disagree with it. -->
+      <div id="cold" tabindex="-1" role="group" aria-labelledby="coldh">
+        <h2 id="coldh" data-i18n="coldTitle"></h2>
+        <ol>
+          <li data-i18n="coldStep1"></li>
+          <li data-i18n="coldStep2"></li>
+          <li data-i18n="coldStep3"></li>
+        </ol>
+        <p data-i18n="coldWhy"></p>
+        <p class="warn" id="coldmiss" hidden data-i18n="coldMiss"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback, not decoration: if the PS4 user-agent can't be parsed, or the
+       firmware is outside the covered set, this is the only way to run at all.
+       It opens itself when auto-detect cannot read the firmware. It does NOT open
+       for a firmware that was read and is simply unsupported -- none of these
+       three chains can run it, so all three buttons would reach the same refusal. -->
+  <details id="manual">
+    <summary data-i18n="manual"></summary>
+    <div id="opts">
+      <button class="opt" id="optC" type="button">
+        <span class="r" dir="ltr">9.00</span>
+        <span class="tag"></span>
+      </button>
+      <button class="opt" id="optA" type="button">
+        <span class="r" dir="ltr">11.00 — 13.00</span>
+        <span class="tag"></span>
+      </button>
+      <button class="opt" id="optB" type="button">
+        <span class="r" dir="ltr">13.02 — 13.52</span>
+        <span class="tag"></span>
+      </button>
+    </div>
+  </details>
+</div>
+<footer><span data-i18n="version"></span> · <b>play_zzone</b></footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var bar = $("bar"), fill = $("fill"), pct = $("pct"), num = $("num"), sub = $("sub"),
+      st = $("state"),
+      fwchip = $("fwchip"), pills = $("pills"), go = $("go"),
+      fwlist = $("fwlist"), fwlista = $("fwlista"),
+      bootbox = $("bootbox"), manual = $("manual"), optA = $("optA"), optB = $("optB"),
+      optC = $("optC"),
+      coldbox = $("cold"), coldmiss = $("coldmiss");
+
+  /* ---------- bilingual ----------
+     Both languages are always available and only ONE is printed per line, so the
+     page never shows the duplicated "جارٍ التفعيل… / Activating…" pairs. The choice
+     is remembered in localStorage and read back by the run pages, which are on the
+     same origin — so flipping the language on the launcher carries through the
+     redirect instead of resetting to Arabic mid-activation.
+     Every string lives here; nothing user-facing is hard-coded at the call site. */
+  var DICT = {
+    ar: {
+      title: "PLAYZZONE-GOLD — تفعيل PS4",
+      desc: "تفعيل PlayStation 4 تلقائياً — يعمل على الإصدارات المدعومة فقط.",
+      langGroup: "اللغة",
+      fwLabel: "إصدار نظامك",
+      supported: "مدعوم",
+      unverified: "غير مدعوم",
+      actReady: "اضغط للتفعيل",
+      actUnsupported: "لا توجد إزاحات لهذا الإصدار",
+      actUnread: "لم يُقرأ إصدار النظام",
+      chainPick: function (c) { return "السلسلة " + c; },
+      fwList: "كل الإصدارات المدعومة:",
+      recommended: "موصى به",
+      manual: "اختيار السلسلة يدوياً",
+      version: "V5.1",
+      barLabel: "جارٍ التجهيز",
+      preparing: "جارٍ التجهيز…",
+      ready: "تم التجهيز — جارٍ التشغيل…",
+      offlineMode: "وضع عدم الاتصال",
+      noStorage: "المتصفح لا يدعم التخزين المسبق — جارٍ التشغيل مباشرة",
+      swMissing: "التخزين المسبق غير متاح — جارٍ التشغيل مباشرة",
+      loadingFiles: function (a, b) { return "جارٍ تحميل الملفات… " + a + " من " + b; },
+      storeFailed: function (n) {
+        return "تعذّر تخزين " + n + " ملف — سيعمل بعد التحميل من الشبكة";
+      },
+      coldTitle: "الملفات جاهزة — لا تفعّل بعد",
+      coldStep1: "اقفل المتصفح بالكامل.",
+      coldStep2: "أطفئ الواي فاي، أو حط الجهاز بوضع الطيران.",
+      coldStep3: "افتح هالصفحة من جديد. التفعيل بيصير متاح من الفتحة الثانية.",
+      coldWhy: "هاي هي بلي بتزيد استقرار الجهاز: السلسلة بتشتغل من الكاش وهو دافي، وما في شي تاني على الشبكة.",
+      coldMiss: "في ملفات ما انخزنت. صلّ الإنترنت واضغط مرة ثانية.",
+      needOnline: "لسا في أشياء ما انخزنت — صلّ الإنترنت مرة وحدة عشان تتحفظ."
+    },
+    en: {
+      title: "PLAYZZONE-GOLD — PS4 Activation",
+      desc: "Automatic PlayStation 4 activation — supported firmwares only.",
+      langGroup: "Language",
+      fwLabel: "Your firmware",
+      supported: "Supported",
+      unverified: "Not supported",
+      actReady: "Tap to activate",
+      actUnsupported: "No offsets for this firmware",
+      actUnread: "Firmware not read",
+      chainPick: function (c) { return "Chain " + c; },
+      fwList: "Every supported firmware:",
+      recommended: "Recommended",
+      manual: "Choose a chain manually",
+      version: "V5.1",
+      barLabel: "Preparing",
+      preparing: "Preparing…",
+      ready: "Ready — starting…",
+      offlineMode: "Offline mode",
+      noStorage: "This browser has no offline storage — starting directly",
+      swMissing: "Offline storage unavailable — starting directly",
+      loadingFiles: function (a, b) { return "Downloading files… " + a + " of " + b; },
+      storeFailed: function (n) {
+        return "Could not store " + n + " file(s) — it will work after one online load";
+      },
+      coldTitle: "Files are ready — do not activate yet",
+      coldStep1: "Close the browser completely.",
+      coldStep2: "Turn off Wi-Fi, or switch the console to airplane mode.",
+      coldStep3: "Open this page again. Activation is available from the second open onwards.",
+      coldWhy: "This is what makes the console more stable: the chain runs from the warm cache with nothing else on the network.",
+      coldMiss: "Some files could not be stored. Reconnect and tap again.",
+      needOnline: "Not everything is stored yet — connect once so the files can be saved."
+    }
+  };
+  var LANG_KEY = "pz_lang";
+
+  function readLang() {
+    try {
+      var v = localStorage.getItem(LANG_KEY);
+      return v === "en" ? "en" : "ar";
+    } catch (e) { return "ar"; }        // storage can throw in a sandboxed frame
+  }
+  var lang = readLang();
+  function T(k, a, b) {
+    var v = DICT[lang][k];
+    return typeof v === "function" ? v(a, b) : v;
+  }
+  function setLang(next) {
+    if (next !== "ar" && next !== "en") return;
+    lang = next;
+    try { localStorage.setItem(LANG_KEY, next); } catch (e) {}
+    render();
+  }
+
+  /* Walk the static text, then repaint everything computed. Called on load and on
+     every toggle, so no string can survive a language switch. */
+  function render() {
+    var nodes = document.querySelectorAll("[data-i18n]"), i;
+    for (i = 0; i < nodes.length; i++) nodes[i].textContent = T(nodes[i].getAttribute("data-i18n"));
+    var arias = document.querySelectorAll("[data-i18n-aria]");
+    for (i = 0; i < arias.length; i++) arias[i].setAttribute("aria-label", T(arias[i].getAttribute("data-i18n-aria")));
+    var sw = document.querySelectorAll("[data-set-lang]");
+    for (i = 0; i < sw.length; i++) sw[i].setAttribute("aria-pressed", String(sw[i].getAttribute("data-set-lang") === lang));
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", T("desc"));
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.title = T("title");
+    paint();
+  }
+  var paint = function () {};          // replaced below, once detection has run
+  Array.prototype.forEach.call(document.querySelectorAll("[data-set-lang]"), function (b) {
+    b.addEventListener("click", function () { setLang(b.getAttribute("data-set-lang")); }, false);
+  });
+
+  var params = new URLSearchParams(location.search);
+  // a chain is ~450-530 KB across 7-8 files; on a slow link that needs real time
+  var SW_READY_TIMEOUT = 30000;
+  var LAUNCHED = false, GONE = false, target = "", picked = "";
+
+  /* ---------- progress reporting ---------- */
+  function setFill(p) {
+    p = Math.max(0, Math.min(100, Math.round(p)));
+    fill.classList.remove("busy");
+    fill.style.width = p + "%";
+    num.textContent = p + "%";                 // sibling of #sub, never its parent
+    bar.setAttribute("aria-valuenow", String(p));
+  }
+  function busy() {
+    fill.style.width = "100%";
+    fill.classList.add("busy");
+    num.textContent = "";                     // touches #num only; #sub stays in the document
+    sub.textContent = T("preparing");
+  }
+  /* #state is the only live region here, so #pct may be hidden without losing any
+     announcement. Showing both at once used to print two overlapping sentences
+     ("جارٍ تحميل الملفات… 3 من 8" under "تم التجهيز") — one message at a time. */
+  function say(t, cls) {
+    st.textContent = t;
+    st.className = cls || "";
+    pct.style.display = t ? "none" : "flex";
+    if (t) { num.textContent = ""; sub.textContent = ""; }
+  }
+  function subOnly(t) { sub.textContent = t; }
+
+  /* ---------- firmware detection ----------
+     ONE scale for both input paths. The PS4 UA reports the minor in hex
+     ("13.52" -> 0x52), so the override must be parsed the same way. */
+  function fwToNum(key) {
+    var m = /^(\d+)\.([0-9a-f]{1,2})$/i.exec(String(key || ""));
+    return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 16) : 0;
+  }
+  var KEY = "", FWNUM = 0;
+  var m = /PlayStation\s+4[\/ ](\d+)\.([0-9a-f]{1,2})/i.exec(navigator.userAgent);
+  if (m) {
+    var ms = parseInt(m[2], 16).toString(16).toUpperCase();
+    if (ms.length < 2) ms = "0" + ms;
+    KEY = m[1] + "." + ms;
+  }
+  if (params.get("fw")) { KEY = params.get("fw").toUpperCase(); }   // ?fw=13.52 override for testing
+  FWNUM = fwToNum(KEY);
+  fwchip.textContent = KEY ? KEY : "??";
+
+  /* ---------- which firmwares are genuinely covered ----------
+     ps4_offsets.js / jb_offsets.js are the authority: a firmware works only if it
+     has a PS4 entry in the table its chain loads AND a matching patches/*.bin.
+     KNOWN is that intersection, in release order. It used to be computed and then
+     ignored by the selector below, so 11.52 got the "unverified" pill and was then
+     handed to a chain that answered `no offsets for this firmware` -- only after the
+     user had downloaded the cache, closed the browser and cut the network.
+     pz-tools/fwgate.js recomputes this array from the shipped tables and fails if it
+     drifts, so the page and the chains can no longer disagree. */
+  var KNOWN = ["9.00", "11.00", "11.50", "12.00", "12.02", "12.50", "12.52",
+               "13.00", "13.02", "13.04", "13.50", "13.52"];
+  var supported = KNOWN.indexOf(KEY) !== -1;
+
+  /* ---------- which chain this firmware gets ----------
+     ONE scale: fwToNum() reads the minor in hex, so 13.52 scores 1382, NOT 1352.
+     KNOWN above is written in that same scale and already spans every covered
+     firmware by construction, so separate bounds could only ever contradict it.
+       9.00    ->  900, chain C (PSFree: a different WebKit exploit entirely)
+       13.02   -> 1302, chain B takes over here
+       11.00+  ->  chain A
+     Between 9.00 and 11.00 (9.50 through 10.72) nothing is covered: PSFree's WebKit
+     stage is 9.00-only even though its Lapse kernel stage carries the comment
+     "PS4 [5.00, 12.50)", because the WebKit half is what selects the firmware.
+     Those keys are absent from KNOWN, so `supported` is false and they are refused.
+
+     `supported` is a hard precondition, not a hint. Anything outside KNOWN has no
+     offsets its chain would load, so activating it can only end in "no offsets".
+     Refusing here turns a failure that surfaced after the whole cold-start ritual
+     into an answer in about a second. */
+  var FW_C_TO = 900, FW_A_FROM = 1100, FW_B_FROM = 1302;
+  var auto = supported
+    ? (FWNUM < FW_A_FROM ? "C" : FWNUM >= FW_B_FROM ? "B" : "A")
+    : null;
+
+  /* Three distinct outcomes, not two. "read it but out of range" and "could not read
+     it at all" are different problems for the user, and collapsing them into one
+     message sends someone with a 9.00 console to look for a browser problem. */
+  var ACT_READY = "actReady", ACT_UNSUPPORTED = "actUnsupported", ACT_UNREAD = "actUnread";
+
+  /* The big line names the firmware the card is about, not a range. "13.02 — 13.52"
+     read as "your console is somewhere in here" and was false for every release
+     inside those bounds that has no offset table (11.52, 12.01, 12.51, 13.01 ...). */
+  paint = function () {
+    pills.textContent = "";
+    var pill = document.createElement("span");
+    pill.className = "pill " + (supported ? "ok" : "warn");
+    pill.textContent = supported ? T("supported") : T("unverified");
+    pills.appendChild(pill);
+    if (auto) {
+      var cp = document.createElement("span");
+      cp.className = "pill";
+      cp.textContent = T("chainPick", auto);
+      pills.appendChild(cp);
+    }
+
+    go.querySelector(".r").textContent = KEY || "??";
+    if (auto) {
+      go.querySelector(".a").textContent = T(ACT_READY);
+      go.removeAttribute("aria-disabled");
+    } else {
+      go.querySelector(".a").textContent = T(KEY ? ACT_UNSUPPORTED : ACT_UNREAD);
+      go.setAttribute("aria-disabled", "true");
+    }
+    optA.querySelector(".tag").textContent = auto === "A" ? T("recommended") : "";
+    optB.querySelector(".tag").textContent = auto === "B" ? T("recommended") : "";
+    optC.querySelector(".tag").textContent = auto === "C" ? T("recommended") : "";
+    /* List form, not a range: a version either has an offset table or it does not,
+       and "11.00 — 13.52" hides that. Kept as a quiet footnote so the button stays
+       the obvious target. The label above it comes from data-i18n. */
+    fwlista.textContent = KNOWN.join(" · ");
+  };
+  /* Only an UNREAD user-agent opens the manual picker -- there the fallback really
+     is the only way in. A readable but unsupported firmware keeps it shut: none of
+     the three chains has offsets for it, so every button would reach the same
+     "no offsets" message, just later and after a full cold-start. */
+  if (!KEY) manual.open = true;
+  render();
+
+  /* ?bug=lapse is chain A's alternate kernel stage (Lapse instead of poops). It
+     does not exist for C or B, so it is only consulted on the A path. */
+  var bug = params.get("bug") === "lapse" ? "lapse" : "poops";
+
+  var TARGET = {
+    A: function () { return bug === "lapse" ? "run_lapse.html?ui=3" : "run_poops.html?ui=3"; },
+    B: function () { return "jb.html?log=1"; },
+    C: function () { return "run_psfree.html?ui=3"; }
+  };
+
+  function choose(key) {
+    if (GONE) return;
+    GONE = true;
+    /* Recorded before the fallback, and separately from it: boot() needs to know
+       WHICH chain was chosen to pick the cache set, and TARGET[key] || TARGET.B
+       would hide a bad key behind a working URL. */
+    picked = key;
+    target = (TARGET[key] || TARGET.B)();
+    /* The progress takes the button's slot. Removing the button (rather than
+       disabling it) is what stops a second run mid-precache, and focus is moved
+       to the bootbox by hand because the focused element is about to vanish --
+       without this, focus falls back to <body> and the live region is not announced. */
+    go.style.display = "none";
+    /* The supported-firmware footnote answers a question about the console, not
+       about this run. Leaving it up while the progress bar takes the button's slot
+       just crowds the live region the user is actually watching. */
+    fwlist.style.display = "none";
+    bootbox.style.display = "block";
+    say("", "");
+    try { bootbox.focus(); } catch (e) {}
+    boot();
+  }
+  go.addEventListener("click", function () { if (auto) choose(auto); }, false);
+  optA.addEventListener("click", function () { choose("A"); }, false);
+  optB.addEventListener("click", function () { choose("B"); }, false);
+  optC.addEventListener("click", function () { choose("C"); }, false);
+
+  function launch(why) {
+    if (LAUNCHED) return;
+    LAUNCHED = true;
+    say(why || T("ready"), "ok");
+    try { location.replace(target); } catch (e) { location.href = target; }
+  }
+
+  /* ---------- offline prep: Service Worker ----------
+     AppCache (window.applicationCache) was removed in Chrome 95+, Firefox 98+ and
+     Safari, so it can never run. The service worker replaces it. Browsers without
+     SW support (older PS4 system browsers) fall straight through to an online run,
+     which is the same behaviour the old !ac guard produced.
+
+     The run pages are only a thin shell: each loads chain_*.js as an ES module,
+     and those modules pull in helpers, a Web Worker and payload.bin at run time.
+     Caching just the HTML is NOT enough -- offline the module import fails and the
+     chain never starts. So each chain carries its own full dependency list. Query
+     strings are listed explicitly because the SW cache match is exact, and the
+     pages import with ?ui=3 / ?v=10. */
+  /* Every file the chain touches at RUN time, read off the shipped modules by
+     scanning for import/fetch/new Worker literals. goldhen.bin, kernel_offset_13.04.js,
+     ko-files/ and logo_playzone.png are in the repo but referenced by NOTHING at run
+     time, so they are deliberately absent here -- they would only waste 447 KB.
+
+     Four entries were missing for a long time and the page still reported a
+     clean precache, because the shell-only list looked complete:
+       - patches/<fw>.bin  the chain fetches one per firmware before patching
+       - jb_core.js?jbv=10  imported by jb.js, not referenced by any HTML
+       - jb.html?log=1      now the NORMAL entry for chain B: jb.js only writes a log
+                      when this param is present, and the small log window needs one.
+                      It is presented as a panel, not as a full-page log.
+       - core.js?v=10       imported by mem.js, so the Lapse chain needs it as
+                            well as its own bare ./core.js
+     A precache that only mirrors the HTML cannot detect any of these: the imports
+     and the fetches all happen after the page is already "done".
+
+     The two core.js entries are NOT a duplicate. They are deliberately two separate
+     module records -- chain_poops.js says so in a comment about not letting core.js
+     build a second instance of the fake cell. So the Lapse chain, which imports the
+     bare "./core.js" itself AND pulls mem.js in, needs BOTH keys cached; listing only
+     the bare one left the run page alive but dead at mem.js's import, offline.
+     DEPS below is generated from a real transitive scan of every import/fetch/Worker
+     literal in the shipped modules, not written by hand. */
+  var PATCHES = ["1100", "1150", "1200", "1250", "1300", "1302", "1304", "1350", "1352"]
+    .map(function (v) { return "patches/" + v + ".bin"; });          // 3.7 KB total
+  var HELP_A = ["mem.js", "int64.js", "ps4_offsets.js", "rpc_worker.js", "payload.bin"];
+  var HELP_B = ["jb_mem.js", "jb_int64.js", "jb_offsets.js", "jb_rpc_worker.js", "payload2.bin"];
+
+  /* ---- chain C: PSFree, for 9.00 only ----
+     A separate project entirely, so it shares nothing with A or B: its own module
+     tree (module/*.js), its own kernel blob, its own WebKit exploit. Three things
+     about it are worth stating because they look like omissions and are not.
+
+     The .js extension instead of PSFree's .mjs is deliberate, and it is the one
+     change made to their files. A <script type="module"> is refused outright by the
+     browser if the response does not carry a JavaScript MIME type: the module never
+     evaluates, nothing throws, and run_psfree.html sits on "جارٍ التفعيل…" for ever
+     with no readable cause. Whether GitHub Pages maps .mjs to a JavaScript MIME type
+     is not something this repo can control or verify -- GitHub offers no
+     per-repository MIME configuration -- and chains A and B work here precisely
+     because every module of theirs ends in .js. So chain C uses the extension that
+     is already proven on this host rather than one that is not. Only the extension
+     inside relative module specifiers changed; pz-tools/build_c.js rebuilds the set
+     from pristine upstream and proves the module graph is identical.
+
+     rop/900.js is listed although the scan that produced the other two sets does
+     not follow dynamic import(). PSFree reaches it twice dynamically:
+     module/chain.js does return import('../rop/900.js') and psfree.js does
+     import('./lapse.js'). A precache that missed either would run offline to a
+     blank stage with no error the page can show.
+
+     goldhen.bin appears in no other set, because nothing in A or B fetches it at run
+     time. Chain C does: lapse.js finishes with PayloadLoader("goldhen.bin"). The
+     file is already in the repo and is byte-identical (SHA-256) to the one
+     kmeps4/PSFree ships, so it is listed here by URL and downloaded once. At 290 KB it
+     is the largest file in the folder, which is the whole reason it is worth being
+     precise about. */
+  var HELP_C = [
+    "psfree.js", "lapse.js", "config.js",
+    "module/chain.js", "module/constants.js", "module/int64.js", "module/mem.js",
+    "module/memtools.js", "module/offset.js", "module/rw.js", "module/utils.js",
+    "module/view.js",
+    "rop/900.js",
+    "aio_patches.bin", "goldhen.bin"
+  ];
+
+  /* jb.js takes the payload name from the offsets table, and EVERY firmware the B
+     chain supports -- 13.02, 13.04, 13.50, 13.52 -- resolves to payload2.bin, not
+     payload.bin. The two files are byte-identical (same SHA-256), so the only thing
+     that matters is the URL: fetching payload.bin here would have left every 13.52
+     device with a 504 the moment the exploit asked for the file it was told to use.
+
+     "jb.html?log=1" is listed separately because it is the one query string that
+     changes behaviour rather than just a cache-buster: it is what switches the
+     chain's log on. jb.js writes nothing into #out without it, so chain B now
+     ENTERS through this URL and the run page presents that log as a small panel
+     instead of a full-page dump. jb.js reads the param and VOLATILE deliberately
+     does not strip it, so offline it needs its own entry or the panel comes up
+     empty. */
+  // "index.html" is in every set on purpose: the launcher shell is what the user
+  // opens when they go offline, so it must be cached even if the SW's install
+  // step failed or was skipped.
+  var DEPS = {
+    A_poops: ["index.html", "run_poops.html?ui=3", "chain_poops.js?ui=3",
+              "core.js?v=10"].concat(HELP_A, PATCHES),
+    // BOTH core.js keys, on purpose -- see the note above the DEPS block.
+    A_lapse: ["index.html", "run_lapse.html?ui=3", "chain_lapse.js?ui=3",
+              "core.js", "core.js?v=10"].concat(HELP_A, PATCHES),
+    B:       ["index.html", "jb.html", "jb.html?log=1", "jb.js?v=10", "jb_core.js?jbv=10"]
+              .concat(HELP_B, PATCHES),
+    C:       ["index.html", "run_psfree.html?ui=3"].concat(HELP_C)
+  };
+  var swReg = null;
+
+  function ensureSW(depth) {
+    if (!("serviceWorker" in navigator)) return Promise.resolve(null);
+    depth = depth || 0;
+    if (!swReg) {
+      // register() can throw synchronously (sandboxed iframe, blocked storage);
+      // let that resolve to null instead of killing the whole script
+      swReg = Promise.resolve()
+        .then(function () { return navigator.serviceWorker.register("sw.js", { scope: "./" }); })
+        .then(function (reg) {
+          // The worker SCRIPT is itself served from the HTTP cache, and GitHub Pages
+          // sends sw.js with max-age=600 -- so a returning visitor can keep running
+          // the previous worker for up to 10 minutes. update() revalidates past that
+          // cache, so a new deploy is picked up on the next page load, not in 10 min.
+          return reg.update().catch(function () {}).then(function () { return reg; });
+        })
+        .then(function () { return navigator.serviceWorker.ready; })
+        .catch(function () { swReg = null; return null; });   // let the next call retry
+    }
+    return swReg.then(function (reg) {
+      /* Never hand back a dead registration. If site data was cleared, or the
+         browser evicted the worker, a memoised promise would keep resolving with
+         a registration whose `active` is gone -- leaving the cache populated but
+         nothing serving it, and the page would claim to work offline while every
+         request goes to the network. Detect that and re-register once. */
+      if (reg && !reg.active && depth < 2) { swReg = null; return ensureSW(depth + 1); }
+      return reg;
+    });
+  }
+  ensureSW();                                  // install on load, not on click
+
+  function viaServiceWorker(urls, done) {
+    if (!("serviceWorker" in navigator)) return false;
+    var settled = false;
+    // done(missing) -- hand the caller what could not be stored. The cold-start
+    // notice hides the progress line, so the warning has to travel with the result
+    // or a partially-stored cache would look like a clean one.
+    var finish = function (m) { if (!settled) { settled = true; done(m || []); } };
+    busy();
+    say("", "");
+    ensureSW().then(function (reg) {
+      if (!reg || !reg.active) throw new Error("no active worker");
+      // post to reg.active, NOT navigator.serviceWorker.controller: the worker does
+      // not control this page on a first visit, and controller is null exactly when
+      // precaching is most needed.
+      return new Promise(function (res, rej) {
+        var ch = new MessageChannel();
+        var t = setTimeout(function () { rej(new Error("precache timeout")); }, SW_READY_TIMEOUT);
+        ch.port1.onmessage = function (e) {
+          var d = e.data || {};
+          if (d.type === "progress") {
+            setFill(Math.round((d.done / d.total) * 100));
+            subOnly(T("loadingFiles", d.done, d.total));
+            return;
+          }
+          clearTimeout(t);
+          if (d.ok) {
+            if (d.missing && d.missing.length) {
+              console.warn("pz: not cached:", d.missing.join(", "));
+              subOnly(T("storeFailed", d.missing.length));
+            }
+            res(d.missing || []);
+          } else rej(new Error("precache rejected"));
+        };
+        reg.active.postMessage({ type: "precache", urls: urls }, [ch.port2]);
+      });
+    }).then(finish).catch(function () {
+      subOnly(T("swMissing"));
+      setTimeout(function () { finish([]); }, 1200);
+    });
+    return true;
+  }
+
+  /* Ask the worker whether a chain set is already fully stored. Read-only, so it
+     is safe to call on every tap; the answer is the whole basis of the cold-start
+     gate below. Resolves with null when there is no worker to ask, which is the
+     "browser has no service workers" case and must fall through to a plain run. */
+  function askSW(urls) {
+    if (!("serviceWorker" in navigator)) return Promise.resolve(null);
+    return ensureSW().then(function (reg) {
+      if (!reg || !reg.active) throw new Error("no active worker");
+      return new Promise(function (res, rej) {
+        var ch = new MessageChannel();
+        var t = setTimeout(function () { rej(new Error("check timeout")); }, SW_READY_TIMEOUT);
+        ch.port1.onmessage = function (e) {
+          var d = e.data || {};
+          if (d.type === "progress") return;
+          clearTimeout(t);
+          if (d.ok) res(d); else rej(new Error("check rejected"));
+        };
+        reg.active.postMessage({ type: "check", urls: urls }, [ch.port2]);
+      });
+    }).catch(function () { return null; });
+  }
+
+  /* The cold-start notice. This is what replaced "precache, then navigate": the
+     cache is full, so we deliberately STOP here. No button, no auto-redirect, no
+     way to skip it from this page — the only way forward is the next visit, and
+     that is the entire point. The progress bar is torn down so the page does not
+     sit at 100% looking like something is still running. */
+  function cold(missing) {
+    /* say() first, and that order matters: say() flips #pct back to display:flex as a
+       side effect of writing the state line, so hiding the bar before calling it left
+       an empty "0% ·" row sitting under the notice. Clear the text, THEN hide. */
+    say("", "");
+    bar.style.display = "none";
+    pct.style.display = "none";
+    fill.classList.remove("busy");
+    fill.style.width = "0%";
+    if (missing && missing.length) {
+      coldmiss.hidden = false;
+      coldmiss.textContent = T("coldMiss");
+    }
+    coldbox.classList.add("on");
+    try { coldbox.focus(); } catch (e) {}
+  }
+
+  function boot() {
+    /* The cache set comes from the chain KEY, never from the target URL.
+       It used to be re-derived from the string -- `target.indexOf("jb.html") === 0
+       ? "B" : (bug === "lapse" ? "A_lapse" : "A_poops")` -- which is the kind of
+       inference that is right until a fourth chain arrives. run_psfree.html does
+       not start with "jb.html", so a 9.00 console silently preloaded chain A's 18
+       files, the worker's "check" then reported every chain C file as missing on
+       every later tap, and the cold-start gate could never be satisfied. A URL
+       prefix test is not a chain identity; the key already is one. */
+    var set = picked === "B" ? "B" : picked === "C" ? "C" : (bug === "lapse" ? "A_lapse" : "A_poops");
+    var urls = DEPS[set];
+
+    askSW(urls).then(function (st) {
+      /* No worker to ask: an old console browser with no service-worker support.
+         There is no cache to prefill and no gate to enforce, so run directly --
+         the same fallback the old !ac guard produced. */
+      if (!st) {
+        subOnly(T("noStorage")); say("", "warn");
+        launch("");
+        return;
+      }
+      /* Already armed. This is the second (or later) open, which is the only
+         place the exploit is allowed to start. */
+      if (st.ready) {
+        subOnly(navigator.onLine === false ? T("offlineMode") : T("ready"));
+        launch("");
+        return;
+      }
+      /* Empty cache while offline: launching now would land on a run page whose
+         modules 504, which looks like a failed exploit rather than a missing
+         download. Say so instead. */
+      if (navigator.onLine === false) {
+        subOnly(T("needOnline")); say("", "warn");
+        return;
+      }
+      if (viaServiceWorker(urls, function (missing) { cold(missing); })) return;
+      subOnly(T("noStorage"));
+      say("", "warn");
+      launch("");
+    });
+  }
+})();
+</script>
+</body>
+</html>
