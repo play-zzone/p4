@@ -1,131 +1,173 @@
-CACHE MANIFEST
-# playzzone-gold offline cache v12 (2026-09-29) — chains A+B (11.00-13.52) + C (9.00)
-#
-# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
-# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
-# v12 = APPCACHE UNWIRED FROM EVERY PAGE;
-# v11 = NARROW-WIDTH BRAND FIX; v10 = CHAIN C ADDED. PSFree (kmeps4/PSFree, AGPL-3.0-or-later) for firmware 9.00:
-# run_psfree.html plus 13 modules, rop/900.js, aio_patches.bin and goldhen.bin --
-# 16 new URLs. The CACHE list below grew; the two existing chain blocks are
-# byte-identical to v9. Do not reformat them.
-#
-# v9 = index.html changed: the launcher no longer advertises two continuous ranges.
-# It now gates the activate button on the firmware actually having an offsets entry
-# AND a kernel-patch blob, so 11.52 / 12.01 / 12.51 / 13.01 are refused in one second
-# instead of failing after the whole cold-start ritual, and the exact supported set is
-# printed on the card.
-#
-# v8 = index.html and sw.js changed: the launcher stops after the precache and shows
-# the cold-start notice instead of launching, and the exploit runs from a later open.
-# The CACHE list below is UNCHANGED. Do not reformat it.
-#
-# v7 = the four HTML pages changed again: every run page now carries a small
-# floating log window, and chain B now ENTERS through jb.html?log=1 because
-# jb.js writes nothing into #out without that param. The CACHE list below is
-# UNCHANGED -- jb.html?log=1 was already listed and is now the entry point
-# rather than a link target. Do not reformat it.
-#
-# v6 = patches/1302.bin, 1350.bin and 1352.bin replaced with the upstream "aio
-# fix" blobs (632 B, previously 314 B) from raw13g/raw13g.github.io commit
-# ef1670a8, credited to MODDED_WARFARE and Al-Azif. The 314 B generation those
-# three replaced was byte-identical to the 314 B build still shipped as
-# patches/1304.bin, so this is the same blob corrected, not a new format.
-# The CACHE list was unchanged: same 3 URLs, different bytes.
-# patches/1250.bin, 1300.bin and 1304.bin stay at 314 B -- upstream ships no
-# fixed version of those to take.
-#
-# v5 = UI redesign only. index.html / jb.html / run_*.html all changed again (they
-# are now bilingual ع / EN), so this comment is bumped purely to force AppCache-only
-# browsers to re-validate and pick up the new markup. The CACHE list below is
-# byte-identical to v4 and was already complete -- it covers all 9 patches/*.bin,
-# both payloads, every module and every ?ui=3 / ?v=10 / ?log=1 variant. Do not
-# reformat it.
-#
-# v3 = two chains in one page. The GOLD chain keeps its original filenames;
-# the new chain (13.02-13.52) is stored under jb_* names so both chains can
-# coexist in the same folder and in the same AppCache.
-#
-# RULES (learned from v1/v2 bugs):
-#  1) Comments must sit on their own line and start with '#'. A '#' inside a
-#     URL line is parsed as a URL fragment which invalidates every entry below.
-#  2) AppCache matches URLs EXACTLY (query string included). So both forms of
-#     each page/module must be listed: run_*.html and run_*.html?ui=3,
-#     core.js and core.js?v=10, jb.html and jb.html?log=1, jb.js?v=10,
-#     jb_core.js?jbv=10.
-#  3) Bumping the comment forces AppCache to re-validate on the next online
-#     visit; the CACHE list itself did not need to change for that.
-#
-# GOLD chain (unchanged from v2.1, plus 1302/1304 kpatches that were missing):
-CACHE:
-index.html
-run_lapse.html
-run_poops.html
-run_lapse.html?ui=3
-run_poops.html?ui=3
-chain_lapse.js?ui=3
-chain_poops.js?ui=3
-core.js
-core.js?v=10
-mem.js
-int64.js
-ps4_offsets.js
-rpc_worker.js
-logo_playzone.png
-payload.bin
-patches/1100.bin
-patches/1150.bin
-patches/1200.bin
-patches/1250.bin
-patches/1300.bin
-patches/1302.bin
-patches/1304.bin
+// ============================================================
+// sw.js — PLAYZZONE p4 v5.3
+// ============================================================
 
-# CHAIN C — 9.00, PSFree (kmeps4/PSFree, AGPL-3.0-or-later). A separate project
-# with its own module tree, so it shares nothing with the two chains above.
-# AppCache is all-or-nothing per manifest: every URL here is downloaded the first
-# time the site is opened, including the 290 KB goldhen.bin, which is already in
-# the repo for the other chains and is the same file (SHA-256) as PSFree's.
-# The ?ui=3 page is the entry point. rop/900.js is reached only by a DYNAMIC
-# import() from module/chain.js, so it is easy to miss and fatal to omit.
-#
-# The .js names are not upstream's .mjs. A module script whose response lacks a
-# JavaScript MIME type is refused by the browser without an error the page can
-# show, and whether the host maps .mjs correctly is outside this repo's control.
-# Chains A and B work here because their modules end in .js, so C does too.
-run_psfree.html
-run_psfree.html?ui=3
-psfree.js
-lapse.js
-config.js
-module/chain.js
-module/constants.js
-module/int64.js
-module/mem.js
-module/memtools.js
-module/offset.js
-module/rw.js
-module/utils.js
-module/view.js
-rop/900.js
-aio_patches.bin
-goldhen.bin
+/* ---- local modification (PLAYZZONE-GOLD) ----
+   Bumped from v5.2 to v5.3 for two reasons:
 
-# NEW chain 13.02-13.52 (jb_* renamed modules; jb.js fetches patches/ and
-# payload2.bin at runtime — all listed for offline use):
-jb.html
-jb.html?log=1
-jb.js?v=10
-jb_core.js?jbv=10
-jb_mem.js
-jb_int64.js
-jb_offsets.js
-jb_rpc_worker.js
-payload2.bin
-patches/1350.bin
-patches/1352.bin
+     1. CORE grew by one entry: ./kpatch/900.elf. lapse.js fetches this blob
+        inside patch_kernel(), which runs after the ARW primitive is up --
+        several minutes into a run. If the file is not pre-cached, that fetch
+        fails with HTTP 404 and the whole run dies at the final stage.
+        sw.js can only cache what exists on disk; the blob itself has to be
+        present at kpatch/900.elf in the repo.
 
-NETWORK:
-*
+     2. Bumping CACHE_NAME forces every installed client to re-run install
+        and pick up the new CORE list. Without the bump, an existing client
+        keeps serving from the old 46-entry cache and never learns about the
+        new file. activate() deletes all caches whose name is not the current
+        CACHE_NAME, so the old pz-gold-v5.2 store is dropped on activation.
 
-FALLBACK:
-index.html
+   cache.appcache in this repo still lists the old 44 entries and is not
+   referenced by any HTML page (its own header says "UNWIRED FROM EVERY PAGE"
+   three times). It is dead. sw.js is the only cache layer here. Do not
+   re-wire the manifest -- AppCache and Service Worker cannot coexist on the
+   same origin, and the SW wins. */
+const CACHE_NAME = 'pz-gold-v5.3';
+
+const CORE = [
+  './',
+  './index.html',
+  './jb.html',
+  './run_poops.html',
+  './run_lapse.html',
+  './run_psfree.html',
+  './sw.js',
+  './chain_poops.js',
+  './chain_lapse.js',
+  './core.js',
+  './mem.js',
+  './int64.js',
+  './ps4_offsets.js',
+  './rpc_worker.js',
+  './payload.bin',
+  './payload2.bin',
+  './goldhen.bin',
+  './aio_patches.bin',
+  './jb.js',
+  './jb_core.js',
+  './jb_mem.js',
+  './jb_int64.js',
+  './jb_offsets.js',
+  './jb_rpc_worker.js',
+  './psfree.js',
+  './lapse.js',
+  './config.js',
+  './logo_playzone.png',
+  './patches/1100.bin',
+  './patches/1150.bin',
+  './patches/1200.bin',
+  './patches/1250.bin',
+  './patches/1300.bin',
+  './patches/1302.bin',
+  './patches/1304.bin',
+  './patches/1350.bin',
+  './patches/1352.bin',
+  './module/chain.js',
+  './module/constants.js',
+  './module/int64.js',
+  './module/mem.js',
+  './module/memtools.js',
+  './module/offset.js',
+  './module/rw.js',
+  './module/utils.js',
+  './module/view.js',
+  './rop/900.js',
+  './kpatch/900.elf',
+];
+
+// ── INSTALL ──────────────────────────────────────────────────
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    let done = 0;
+    const results = await Promise.allSettled(
+      CORE.map(async url => {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`${res.status} ${url}`);
+        await cache.put(url, res);
+        done++;
+        // progress ping
+        const clients = await self.clients.matchAll({ type: 'window' });
+        clients.forEach(c => c.postMessage({
+          type: 'CACHE_PROGRESS', done, total: CORE.length
+        }));
+        return url;
+      })
+    );
+
+    const failed = results
+      .filter(r => r.status === 'rejected')
+      .map(r => r.reason?.message ?? String(r.reason));
+
+    const clients = await self.clients.matchAll({ type: 'window' });
+
+    if (failed.length) {
+      clients.forEach(c => c.postMessage({ type: 'CACHE_FAIL', failed }));
+      throw new Error('cache install failed:\n' + failed.join('\n'));
+    }
+
+    clients.forEach(c => c.postMessage({ type: 'CACHE_READY' }));
+    await self.skipWaiting();
+  })());
+});
+
+// ── ACTIVATE ─────────────────────────────────────────────────
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+// ── FETCH ────────────────────────────────────────────────────
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request, { cacheName: CACHE_NAME });
+    if (cached) return cached;
+
+    try {
+      const fresh = await fetch(event.request);
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(event.request, fresh.clone());
+      return fresh;
+    } catch {
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(c => c.postMessage({
+        type: 'MISSING_FILE', url: event.request.url
+      }));
+      return new Response(
+        JSON.stringify({ error: 'offline', url: event.request.url }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  })());
+});
+
+// ── MESSAGE: CHECK_CACHE ──────────────────────────────────────
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'CHECK_CACHE') return;
+  (async () => {
+    const cache  = await caches.open(CACHE_NAME);
+    const keys   = await cache.keys();
+    const cached = new Set(keys.map(r => new URL(r.url).pathname));
+    const base   = new URL('./', self.location.href).pathname;
+
+    const missing = CORE
+      .map(u => new URL(u, self.location.href).pathname)
+      .filter(p => !cached.has(p));
+
+    event.source.postMessage({
+      type:    'CACHE_STATUS',
+      ready:   missing.length === 0,
+      total:   CORE.length,
+      cached:  CORE.length - missing.length,
+      missing,
+    });
+  })();
+});
