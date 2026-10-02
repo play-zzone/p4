@@ -1860,13 +1860,95 @@ function PayloadLoader(Pfile)
 
 }
 
-kexploit().then(() => {
+/* ---- local modification (PLAYZZONE-GOLD, see LICENSE-PSFree-AGPL.txt) ----
+   Upstream wrote the payload loads as:
 
-//Load ABC fix as a regular Payload
-setTimeout(PayloadLoader("aio_patches.bin"),500);
-log("AIO Fixes Applied.!");
-//Load GoldHEN :)
-setTimeout(PayloadLoader("goldhen.bin"),500);
-log("GoldHEN Loaded.!");
+       setTimeout(PayloadLoader("aio_patches.bin"), 500);
+       log("AIO Fixes Applied.!");
+       setTimeout(PayloadLoader("goldhen.bin"), 500);
+       log("GoldHEN Loaded.!");
 
-})
+   Three defects in that form:
+
+   1. setTimeout(fn(), 500) evaluates PayloadLoader immediately and passes
+      its return value (undefined) to setTimeout. There is no delay, and the
+      two payloads race each other through their own XHRs.
+   2. PayloadLoader uses XMLHttpRequest asynchronously -- req.send() returns
+      before onreadystatechange fires. Even with a real delay, the "Loaded"
+      lines would print before the payloads were actually handed to
+      pthread_create.
+   3. run_psfree.html declares success by observing "GoldHEN Loaded.!" in
+      the log. Printing that line before the payload is in place would make
+      the page claim success on a failed load.
+
+   Fix: PayloadLoaderAsync wraps PayloadLoader in a Promise that resolves
+   inside onreadystatechange after pthread_create. The two logs are emitted
+   only after their payloads have actually been handed to the kernel.
+   PayloadLoader itself is kept unchanged (still exported to the page as
+   the original name) so nothing else that might reference it breaks. */
+
+function PayloadLoaderAsync(Pfile) {
+    return new Promise((resolve, reject) => {
+        const loader_addr = chain.sysp(
+            'mmap',
+            new Int(0, 0),
+            0x1000,
+            PROT_READ | PROT_WRITE | PROT_EXEC,
+            0x41000,
+            -1,
+            0
+        );
+
+        const tmpStubArray = array_from_address(loader_addr, 1);
+        tmpStubArray[0] = 0x00C3E7FF;
+
+        const req = new XMLHttpRequest();
+        req.responseType = 'arraybuffer';
+        req.open('GET', Pfile);
+        req.onerror = () => reject(new Error(`PayloadLoader: XHR error on ${Pfile}`));
+        req.onreadystatechange = function () {
+            if (req.readyState !== 4) {
+                return;
+            }
+            if (req.status < 200 || req.status >= 300) {
+                reject(new Error(`PayloadLoader: HTTP ${req.status} on ${Pfile}`));
+                return;
+            }
+            try {
+                const PLD = req.response;
+                const payload_buffer = chain.sysp('mmap', 0, 0x300000, 7, 0x41000, -1, 0);
+                const pl = array_from_address(payload_buffer, PLD.byteLength * 4);
+                const padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
+                const tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
+                tmp.set(new Uint8Array(req.response), 0);
+                tmp.set(padding, req.response.byteLength);
+                const shellcode = new Uint32Array(tmp.buffer);
+                pl.set(shellcode, 0);
+                const pthread = malloc(0x10);
+
+                call_nze(
+                    'pthread_create',
+                    pthread,
+                    0,
+                    loader_addr,
+                    payload_buffer
+                );
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        };
+        req.send();
+    });
+}
+
+kexploit().then(async () => {
+    try {
+        await PayloadLoaderAsync('aio_patches.bin');
+        log('AIO Fixes Applied.!');
+        await PayloadLoaderAsync('goldhen.bin');
+        log('GoldHEN Loaded.!');
+    } catch (err) {
+        log('payload load failed: ' + (err && err.message ? err.message : String(err)));
+    }
+});
