@@ -52,6 +52,14 @@ const CORE = [
   './module/utils.js',
   './module/view.js',
   './rop/900.js',
+  /* ---- local modification (PLAYZZONE-GOLD) ----
+     lapse.js calls get_patches('./kpatch/900.elf') inside patch_kernel(),
+     which runs after the ARW primitive is established. Without this entry
+     the file is never pre-cached, the fetch inside patch_kernel fails with
+     HTTP 404 after several minutes of exploit work, and the run dies at the
+     last stage. The blob itself has to be present on disk at kpatch/900.elf
+     -- sw.js can only cache what exists. */
+  './kpatch/900.elf',
 ];
 
 // ── INSTALL ──────────────────────────────────────────────────
