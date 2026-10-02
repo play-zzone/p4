@@ -11,10 +11,17 @@
    This page differs from run_poops.html / run_lapse.html in exactly two places,
    and both are forced by PSFree's own code, which is shipped unmodified:
 
-     1. The log element is id="console", not id="out".
-        module/utils.js does `const console = document.getElementById('console')`
-        at module-evaluation time and log() appends to it. Renaming the id would
-        mean editing their file; naming the element "console" means editing nothing.
+     1. The log element is id="psfree-console", not id="out" and not id="console".
+        Two reasons for the rename away from upstream's "console":
+
+        a. Naming a DOM element "console" creates a named access on document,
+           which shadows the real console object at document scope on some
+           WebKit builds. That breaks any code -- including PSFree's own -- that
+           expects window.console.log to exist.
+        b. Even with the shadowing fixed, module/utils.js binds the sink at
+           module-evaluation time via getElementById. Renaming forces utils.js
+           to resolve lazily, which it now does (see that file's local-mod
+           comment).
 
      2. The terminal state is read from the log text, not from #state.
         PSFree never writes #state. The other two chains set its className to
@@ -25,9 +32,9 @@
         their failure path is die() -> DieError -> a rejected promise that nothing
         in the chain catches.
 
-   #state and #console are deliberately NOT translated: they are the chain's own
-   technical output, and inventing an Arabic rendering of a kernel log would be a
-   false claim about what ran on the console. */
+   #state and #psfree-console are deliberately NOT translated: they are the
+   chain's own technical output, and inventing an Arabic rendering of a kernel
+   log would be a false claim about what ran on the console. */
 :root{
   --bg:#0e0e11; --surface:#17171c; --sunken:#0a0a0d; --gold-tint:#252322;
   --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.16);
@@ -73,7 +80,7 @@ main{padding:26px 22px;text-align:center;
 /* PSFree's own log element. Hidden because #logbox below is what you read; the
    chain still fills it, the panel just mirrors it. Same reason the other two run
    pages hide #out. */
-#console{display:none}
+#psfree-console{display:none}
 
 #fw{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
 #fw b{color:var(--ink-2);font-weight:600}
@@ -81,8 +88,8 @@ main{padding:26px 22px;text-align:center;
 #social b{color:var(--gold-ink);font-weight:600;letter-spacing:.04em;unicode-bidi:isolate;direction:ltr}
 
 /* ---- the small log window ------------------------------------------------
-   Identical to the other two run pages, except it observes #console instead of
-   #out. Same rule: the panel never reads the chain, it mirrors it. */
+   Identical to the other two run pages, except it observes #psfree-console
+   instead of #out. Same rule: the panel never reads the chain, it mirrors it. */
 #logbox{margin:13px auto 0;width:100%;
     background:var(--surface);border:1px solid var(--line-2);border-radius:12px;
     box-shadow:0 8px 26px rgba(0,0,0,.45);overflow:hidden}
@@ -132,7 +139,7 @@ main{padding:26px 22px;text-align:center;
     <p id="act" role="status" aria-live="polite"></p>
     <div class="bar" role="progressbar" data-i18n-aria="barLabel"><div id="fill" class="busy"></div></div>
     <p id="state"></p>
-    <pre id="console"></pre>
+    <pre id="psfree-console"></pre>
 
     <p id="fw"><span data-i18n="fwPrefix"></span> <b id="fwv" dir="ltr">—</b></p>
     <p id="social"><span data-i18n="social"></span> <b>play_zzone</b></p>
@@ -154,7 +161,7 @@ main{padding:26px 22px;text-align:center;
    Same dictionary keys and the same localStorage key as the launcher and the other
    run pages, and all pages share one origin, so the language chosen on the launcher
    is still in effect after the redirect. Only the interface is translated; the
-   chain's own output in #console is left exactly as the module wrote it. */
+   chain's own output in #psfree-console is left exactly as the module wrote it. */
 (function(){
   try{
     var DICT = {
@@ -216,15 +223,17 @@ main{padding:26px 22px;text-align:center;
 <script>
 /* ---------- the verdict, derived from the chain's own output ----------
    The other two run pages read #state.className, which their chains maintain.
-   PSFree maintains nothing: its whole interface is log() into #console. So this
-   page derives the verdict from the log text instead, and owns #state itself.
+   PSFree maintains nothing: its whole interface is log() into #psfree-console.
+   So this page derives the verdict from the log text instead, and owns #state
+   itself.
 
    Success is not guessed. lapse.js ends kexploit() with exactly these two lines
    after handing both payloads to the kernel:
        log("AIO Fixes Applied.!")
        log("GoldHEN Loaded.!")
-   The second one only runs on the setTimeout after the first, so its presence is
-   the chain's own statement that it finished.
+   The second one only runs after the second PayloadLoaderAsync promise resolves
+   (see lapse.js local-mod comment), so its presence is the chain's own statement
+   that it finished -- not just that the first log line ran.
 
    Failure is their die(): it throws DieError, nothing catches it, and it reaches
    window as an unhandledrejection. Upstream ships alert.js, which pops an alert()
@@ -232,7 +241,7 @@ main{padding:26px 22px;text-align:center;
    panel already showing the reason, so the same trap writes to #state instead and
    alert.js is not shipped. */
 (function(){try{
-  var con=document.getElementById("console"), st=document.getElementById("state"), OK="GoldHEN Loaded.!";
+  var con=document.getElementById("psfree-console"), st=document.getElementById("state"), OK="GoldHEN Loaded.!";
   if(!con||!st) return;
   var done=false;
   function set(cls,text){ if(done) return; if(cls==="ok") done=true; st.className=cls; if(text) st.textContent=text; }
@@ -246,8 +255,8 @@ main{padding:26px 22px;text-align:center;
   }
   addEventListener("unhandledrejection", trap, false);
   addEventListener("error", function(ev){ trap(ev); return true; }, false);
-  /* Success arrives as a text node appended to #console, so watch for it there
-     rather than re-reading the whole log on every mutation. */
+  /* Success arrives as a text node appended to #psfree-console, so watch for it
+     there rather than re-reading the whole log on every mutation. */
   new MutationObserver(function(){
     if(done) return;
     if(con.textContent.indexOf(OK)>=0) set("ok","");
@@ -273,15 +282,15 @@ main{padding:26px 22px;text-align:center;
 </script>
 <script>
 /* ---------- the small log window ----------
-   Observes #console and mirrors it into the panel. Identical to the other two run
-   pages except for the source element. Nothing here is translated: the log is the
-   chain's own bytes, and the header verdict is read off #state.className and shown
-   in the page's own language. Toggle is a class only -- no navigation, so nothing
-   to re-cache and no second copy of the chain in flight. */
+   Observes #psfree-console and mirrors it into the panel. Identical to the other
+   two run pages except for the source element. Nothing here is translated: the log
+   is the chain's own bytes, and the header verdict is read off #state.className
+   and shown in the page's own language. Toggle is a class only -- no navigation,
+   so nothing to re-cache and no second copy of the chain in flight. */
 (function(){try{
   var box=document.getElementById("logbox"), body=document.getElementById("logbody"),
       title=document.getElementById("lbtitle"), step=document.getElementById("lbstep"),
-      tog=document.getElementById("lbtoggle"), src=document.getElementById("console"),
+      tog=document.getElementById("lbtoggle"), src=document.getElementById("psfree-console"),
       st=document.getElementById("state");
   if(!box||!body||!src) return;
 
