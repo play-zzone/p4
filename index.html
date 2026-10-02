@@ -1,5 +1,4 @@
-// داخل index.html — داخل <script> tag
-(async function initPZ() {
+// داخل index.html — داخل <script> tag(async function initPZ() {
   const READY_KEY = 'pz_cache_ready_v52';
 
   // ── status bar ──────────────────────────────────────────────
@@ -37,6 +36,12 @@
   }
 
   // ── firmware → chain map ────────────────────────────────────
+  /* ---- local modification (PLAYZZONE-GOLD) ----
+     ps4_offsets.js declares 13.02 and 13.04 as alias_of 13.00 with bug=poops
+     and kpatch=1302.bin / 1304.bin. The original map routed both of them to
+     jb.html, which loads chain_lapse -- a different chain from the one the
+     offsets were written for. The WebKit side is identical to 13.00 (no
+     13.02/13.04 module dump exists), so run_poops is the correct target. */
   const CHAIN_MAP = {
     '11.00':'run_poops.html?ui=3',
     '11.50':'run_poops.html?ui=3',
@@ -45,8 +50,8 @@
     '12.50':'run_poops.html?ui=3',
     '12.52':'run_poops.html?ui=3',
     '13.00':'run_poops.html?ui=3',
-    '13.02':'jb.html?log=1',
-    '13.04':'jb.html?log=1',
+    '13.02':'run_poops.html?ui=3',
+    '13.04':'run_poops.html?ui=3',
     '13.50':'jb.html?log=1',
     '13.52':'jb.html?log=1',
     '9.00' :'run_psfree.html?ui=3',
@@ -82,8 +87,8 @@
     });
     wrap.innerHTML = `<div style="color:#f0c040;font-size:18px;margin-bottom:16px">اختر الچين</div>`;
     [
-      ['Chain A — 11.00 → 13.00','run_poops.html?ui=3'],
-      ['Chain B — 13.02 → 13.52','jb.html?log=1'],
+      ['Chain A — 11.00 → 13.04','run_poops.html?ui=3'],
+      ['Chain B — 13.50 → 13.52','jb.html?log=1'],
       ['Chain C — 9.00','run_psfree.html?ui=3'],
     ].forEach(([label, href]) => {
       const btn = document.createElement('button');
@@ -182,7 +187,8 @@
   }
 
   // ── first visit: show progress immediately ───────────────────
-  uiProgress(0, 44);
+  /* Total updated to match sw.js CORE length after adding kpatch/900.elf. */
+  uiProgress(0, 47);
 
   if (reg.installing) {
     await new Promise(resolve => {
@@ -197,6 +203,4 @@
 
   // verify after install
   const activeSW = reg.active;
-  if (activeSW) activeSW.postMessage({ type: 'CHECK_CACHE' });
-
-})();
+  if (activeSW) activeSW.postMessage({ type: 'CHECK_CACHE' });})();
