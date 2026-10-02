@@ -28,9 +28,41 @@ export function die(msg='') {
     throw new DieError(msg);
 }
 
-const console = document.getElementById('console');
+/* ---- local modification (PLAYZZONE-GOLD, see LICENSE-PSFree-AGPL.txt) ----
+   Upstream bound the log sink at module-evaluation time:
+
+       const console = document.getElementById('console');
+
+   That is a hard failure mode on this page. In the unmodified run_psfree.html
+   the log element is id="console", but exposing an element named "console"
+   shadows the global console object at document scope and breaks any code
+   (including PSFree's own) that expects window.console.log to exist. Renaming
+   the element to id="psfree-console" fixes the shadowing, but then the
+   constant above resolves to null at import time and the first log() call
+   throws "Cannot read properties of null (reading 'append')".
+
+   Fix: resolve the element lazily inside log()/clear_log(), with a null
+   guard that falls through to the real console object. If the sink is
+   missing the message still goes somewhere instead of killing the chain.
+   Function signatures, argument order, and exported names are unchanged. */
+let _logSink = null;
+function logSink() {
+    if (_logSink === null) {
+        _logSink = document.getElementById('psfree-console');
+    }
+    return _logSink;
+}
+
 export function log(msg='') {
-    console.append(msg + '\n');
+    const sink = logSink();
+    if (sink !== null && sink !== undefined) {
+        sink.append(msg + '\n');
+        return;
+    }
+    /* No element: fall back to the real console so the chain keeps running. */
+    if (typeof window !== 'undefined' && window.console && window.console.log) {
+        window.console.log(msg);
+    }
 }
 
 export function clear_log() {
@@ -38,8 +70,13 @@ export function clear_log() {
    Upstream shipped `console.innerHTML = null;`. Assigning null to innerHTML
    coerces to the string "null", so clear_log() replaced the log with the
    literal text "null" instead of emptying it. Display only; no exploit logic
-   is touched. Rest of this file is byte-identical to kmeps4/PSFree main. */
-console.innerHTML = '';
+   is touched. Rest of this file is byte-identical to kmeps4/PSFree main.
+
+   Retargeted at the renamed sink element and guarded for the null case. */
+    const sink = logSink();
+    if (sink !== null && sink !== undefined) {
+        sink.innerHTML = '';
+    }
 }
 
 // alignment must be 32 bits and is a power of 2
