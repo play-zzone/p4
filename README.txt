@@ -1,4 +1,4 @@
-PLAYZZONE-GOLD V5.2 — three chains, firmware 9.00 to 13.52
+PLAYZZONE-GOLD V5.3 — three chains, firmware 9.00 to 13.52
 ==========================================================
 Bilingual (AR / EN) launcher for static hosting, dark gold theme.
 
@@ -36,7 +36,8 @@ next time.
               A and C, 19 for B) into the service worker cache, shows a
               progress bar, and then STOPS. The exploit does not start.
               It tells the user to close the browser fully, turn the Wi-Fi
-              off (or use airplane mode), and reopen.
+              off (Settings > Network > Wi-Fi Connections > Disconnect), and
+              reopen. The PS4 has no airplane mode; do not look for one.
  Later open  — the launcher finds the set already stored and goes straight to
               the chain page, which then runs with nothing on the network.
 
@@ -46,6 +47,47 @@ next time.
 
  If any file is missing from the cache, the launcher says so and asks for the
  network instead of starting a chain that cannot finish.
+
+ Two storage mechanisms, and the launcher PRINTS which one answered, because
+ "the cache does not load" has at least three different causes and guessing
+ between them is what kept this wrong for several rounds:
+
+ 1. Service worker (sw.js). Used wherever it works. Per-chain file set, real
+    progress, and the readiness probe asks the cache itself which URLs are
+    absent -- never a stored flag, because a flag survives clearing site data
+    and would wave the user into a chain whose modules are gone.
+
+ 2. AppCache (cache.appcache). The second mechanism, declared on index.html
+    and ONLY there. Chrome 95+, Firefox 98+ and Safari have dropped it, and
+    where a worker exists the browser uses the worker and ignores the manifest
+    (WebKit disables the app cache for any document a worker controls), so on a
+    current browser this costs nothing and does nothing. It is here because the
+    PS4's WebKit is exactly the case where a worker may register and never
+    answer -- and v5.2 had removed the manifest from every page, which left that
+    console with no offline mechanism at all. It must never go back on a run
+    page: there it starts a 50-URL download on exactly the page that has to run
+    the exploit from a warm cache, which is what v5.1 did.
+
+ 3. Neither. The launcher says so in plain words, refuses to send the user
+    offline into a page that cannot load, and runs from the network.
+
+ The app cache is all-or-nothing, so its status COMPLETE is the readiness
+ answer; clearing site data puts it back to UNCACHED, so it cannot go stale the
+ way a flag would. The trade is that it is one download of all 50 URLs
+ (~1.07 MB) instead of one chain's set.
+
+ "Are we online" is decided by fetching pz-ping, a URL that can never be
+ cached, and by whether that fetch REJECTS. navigator.onLine is not used as a
+ gate anywhere: it reports the state of the network interface, which on a
+ console does not follow the link going down, so both offline messages used to
+ be unreachable code. sw.js hands pz-ping straight to the network and lets the
+ rejection through, because every other branch there turns an offline miss into
+ a 504 RESPONSE, which makes a dead link look like a live one.
+
+ Offline, a navigation that finds nothing in the cache is answered with a real
+ Arabic document, not undefined: respondWith(undefined) is a TypeError and the
+ browser answers it with its own error page, which is nothing of ours and no
+ message at all.
 
 ------------------------------------------------------------
 3. FILES  (52 total, 1.9 MB)
@@ -57,7 +99,7 @@ next time.
    run_lapse.html  chain A, alternate build
    run_psfree.html chain C page
    sw.js           service worker: cache, precache, check
-   cache.appcache  50 URLs, rev v12
+   cache.appcache  50 URLs, rev v13
    README-UPLOAD.txt, README.txt
 
  Chain A (upstream, unmodified):
@@ -112,10 +154,10 @@ next time.
  Any change to a cached file needs a version bump, or a returning browser will
  keep serving the old copy forever:
 
-   sw.js            var CACHE = "pz-gold-v5.2"      -> v5.2
-   cache.appcache   the rev comment at the top      -> v13
-   index.html       version: "V5.2" in both language objects
-   the header comment of all five HTML pages        -> v5.2
+   sw.js            var CACHE = "pz-gold-v5.3"      -> v5.4
+   cache.appcache   the rev comment at the top      -> v14
+   index.html       version: "V5.3" in both language objects
+   the header comment of all five HTML pages        -> v5.4
    README-UPLOAD.txt  the version and cache-name line
 
  A CORE addition alone needs no CACHE bump — install is additive and picks up
