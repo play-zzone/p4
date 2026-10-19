@@ -99,7 +99,7 @@ next time.
    run_lapse.html  chain A, alternate build
    run_psfree.html chain C page
    sw.js           service worker: cache, precache, check
-   cache.appcache  50 URLs, rev v13
+   cache.appcache  51 URLs, rev v14
    README-UPLOAD.txt, README.txt
 
  Chain A (upstream, unmodified):
@@ -111,8 +111,9 @@ next time.
    jb.js, jb_core.js, jb_mem.js, jb_int64.js, jb_offsets.js,
    jb_rpc_worker.js, payload2.bin (293,120 B, byte-identical to payload.bin)
 
- Chain C (PSFree, 16 files):
+ Chain C (PSFree, 17 files):
    psfree.js, lapse.js, config.js, goldhen.bin (290,016 B)
+   kpatch/900.elf (5,288 B; lapse.js fetches it at the last stage)
    module/  chain constants int64 mem memtools offset rw utils view (.js)
    rop/     900.js
    aio_patches.bin
@@ -133,16 +134,23 @@ next time.
            Import paths point at the jb_* modules so the two chains cannot
            collide. The pre-port file is kept outside the folder for rollback.
 
- Chain C   Shipped as PSFree, with two deliberate deviations, and nothing else:
+ Chain C   Shipped as PSFree, with three deliberate deviations, and nothing else:
              1. all 13 .mjs renamed to .js. A <script type="module"> is refused
                 outright by a browser that does not get a JavaScript MIME type
                 for the response, and the failure is silent — the page would
                 sit on "activating" forever with nothing thrown. The .js
                 extension is what chains A and B already prove on this host.
-             2. one line in module/utils.js: `console.innerHTML = null` became
-                `''`. null coerces to the string "null", and the chain clears
-                the log right after its UAF stage, so the whole panel read
-                "null". Display only.
+             2. the log element is id="psfree-console", not upstream's
+                "console", and module/utils.js resolves it lazily (with a null
+                guard that falls back to the real console object). An element
+                named "console" creates a named access on document that
+                shadows window.console on some WebKit builds, and binding the
+                sink at module-evaluation time would resolve it to null and
+                throw on the first log().
+             3. one line in module/utils.js's clear_log(): `console.innerHTML =
+                null` became `''`. null coerces to the string "null", and the
+                chain clears the log right after its UAF stage, so the whole
+                panel read "null". Display only.
            Everything else — the exploit, the ROP, the payloads — is untouched.
 
  PSFree is AGPL-3.0-or-later. Its licence travels with it as
@@ -155,7 +163,7 @@ next time.
  keep serving the old copy forever:
 
    sw.js            var CACHE = "pz-gold-v5.3"      -> v5.4
-   cache.appcache   the rev comment at the top      -> v14
+   cache.appcache   the rev comment at the top      -> v15
    index.html       version: "V5.3" in both language objects
    the header comment of all five HTML pages        -> v5.4
    README-UPLOAD.txt  the version and cache-name line
